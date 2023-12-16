@@ -1,0 +1,216 @@
+call plug#begin('~/.vim/plugged')
+
+"Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'preservim/nerdtree'
+Plug 'preservim/nerdcommenter'
+Plug 'octol/vim-cpp-enhanced-highlight'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+Plug 'dkprice/vim-easygrep'
+Plug 'jlanzarotta/bufexplorer'
+Plug 'MattesGroeger/vim-bookmarks'
+Plug 'sonph/onehalf', {'rtp': 'vim/'}
+
+call plug#end()
+
+filetype plugin on
+
+let g:airline#extensions#tabline#enabled = 1
+
+syntax on
+set number
+set cursorline
+set autoindent
+set noexpandtab
+set tabstop=4
+set shiftwidth=4
+set nowrap
+set formatoptions-=t
+set hidden
+
+set clipboard=unnamed
+set list
+set listchars=tab:\┆\ ,space:·
+syntax enable
+set termguicolors
+colorscheme onehalfdark
+let g:airline_theme='onehalfdark'
+set mouse=a
+
+
+"wildmenu navigation, filename autocompletion
+cnoremap <Left> <Space><BS><Left>
+cnoremap <Right> <Space><BS><Right>
+cnoremap <expr> <Up> pumvisible() ? "\<Left>" :"\<Up>"
+cnoremap <expr> <Down> pumvisible() ? "\<Right>" :"\<Down>"
+
+" Backspace remove in visual mode
+vmap <BS> d
+
+" Navigation foreward and backward:
+nnoremap <A-Left> <C-O>
+nnoremap <A-Right> <C-I>
+inoremap <A-Left> <C-o><C-O>
+inoremap <A-Right> <C-o><C-I>
+
+nmap <C-PageUp> :-10<CR>
+nmap <C-PageDown> :+10<CR>
+vmap <C-PageUp> <C-o>:-10<CR>
+vmap <C-PageDown> <C-o>:+10<CR>
+
+
+" save, copy, paste, cut, undo:
+imap <C-s> <C-o>:w<CR>
+nmap <C-s> :w<CR>
+
+imap <C-y> <C-o><S-v>y
+vmap <C-y> y<Esc>i
+vmap <C-c> y
+nmap <C-c> y
+imap <C-c> <C-o>y
+
+imap <C-p> <C-o><S-p>
+imap <C-v> <C-o><S-p>
+nmap <C-v> <S-p>
+
+vmap <C-x> d
+
+imap <C-z> <C-o>u
+imap <A-z> <C-o>:redo<CR>
+nmap <A-z> :redo<CR>
+
+" indentation:
+nmap <Tab> >>
+" imap <Tab> <C-o>>>
+vmap <Tab> >gv
+nmap <S-Tab> <<
+imap <S-Tab> <C-o><<
+vmap <S-Tab> <gv
+
+" shift+arrow selection:
+nmap <S-Up> v<Up>
+nmap <S-Down> v<Down>
+nmap <S-Left> v<Left>
+nmap <S-Right> v<Right>
+nmap <S-Home> v<Home>
+nmap <S-End> v<End>
+nnoremap <A-S-Down> <C-v><Down>
+nnoremap <A-S-Up> <C-v><Up>
+vmap <S-Up> <Up>
+vmap <S-Down> <Down>
+vmap <S-Left> <Left>
+vmap <S-Right> <Right>
+vmap <S-Home> <Home>
+vmap <S-End> <End>
+imap <S-Up> <C-o>v<Up>
+imap <S-Down> <C-o>v<Down>
+imap <S-Left> <C-o>v<Left>
+imap <S-Right> <C-o>v<Right>
+imap <S-Home> <C-o>v<Home>
+imap <S-End> <C-o>v<End>
+inoremap <A-S-Up> <C-o><C-v><Up>
+inoremap <A-S-Down> <C-o><C-v><Down>
+
+
+" Close windows and buffers
+imap <C-q> <C-o> :q<CR>
+nmap <C-q> :q<CR>
+imap <C-d> <C-o> :bp\|bd#<CR>
+nmap <C-d> :bp\|bd#<CR>
+
+" Arrow key new line
+set whichwrap+=<,>,[,]
+
+" buffer navigation
+imap <C-S-Left> <C-o>:bp<CR>
+nmap <C-S-Left> :bp<CR>
+imap <C-S-Right> <C-o>:bn<CR>
+nmap <C-S-Right> :bn<CR>
+imap <C-Q> <C-o>:bd<CR>
+nmap <C-Q> :bd<CR>
+nmap <C-b> :Buffers<CR>
+imap <C-b> <C-o>:Buffers<CR>
+nmap <C-t> :enew<CR>
+imap <C-t> <C-o>:enew<CR>
+
+" Window navigation:
+nmap <silent> <C-Up> :wincmd k<CR>
+nmap <silent> <C-Down> :wincmd j<CR>
+nmap <silent> <C-Left> :wincmd h<CR>
+nmap <silent> <C-Right> :wincmd l<CR>
+imap <silent> <C-Up> <C-o>:wincmd k<CR>
+imap <silent> <C-Down> <C-o>:wincmd j<CR>
+imap <silent> <C-Left> <C-o>:wincmd h<CR>
+imap <silent> <C-Right> <C-o>:wincmd l<CR>
+
+" COC.NVIM configuration:
+"nmap <f2> <Plug>(coc-definition)
+"nmap <f3> <Plug>(coc-type-definition)
+"nmap <C-u> <Plug>(coc-references)
+"nmap <C-r> <Plug>(coc-rename)
+
+"inoremap <silent><expr> <C-space> coc#refresh()
+"imap <f2> <C-o><Plug>(coc-definition)
+"imap <f3> <C-o><Plug>(coc-type-definition)
+"imap <C-u> <C-o><Plug>(coc-references)
+"imap <C-r> <C-o><Plug>(coc-rename)
+"autocmd CursorHold * silent call CocActionAsync('highlight')
+
+" nerd tree:
+let NERDTreeMapChangeRoot='c'
+let NERDTreeMapUpdir='<BS>'
+imap <C-n> <C-o>:NERDTreeFocus<CR>
+nmap <C-n> :NERDTreeFocus<CR>
+let NERDTreeShowHidden=1
+autocmd StdinReadPre * let s:std_in=1
+autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+
+" nerd commenter:
+nmap <C-_> <Plug>NERDCommenterToggle
+imap <C-_> <C-o><Plug>NERDCommenterToggle
+vmap <C-_> <Plug>NERDCommenterToggle<CR>
+
+" Add spaces after comment delimiters by default
+let g:NERDSpaceDelims = 1
+" Use compact syntax for prettified multi-line comments
+let g:NERDCompactSexyComs = 1
+" Align line-wise comment delimiters flush left instead of following code indentation
+let g:NERDDefaultAlign = 'left'
+" Set a language to use its alternate delimiters by default
+let g:NERDAltDelims_java = 1
+" Add your own custom formats or override the defaults
+let g:NERDCustomDelimiters = { 'c': { 'left': '//','right': '' } }
+" Allow commenting and inverting empty lines (useful when commenting a region)
+let g:NERDCommentEmptyLines = 1
+" Enable trimming of trailing whitespace when uncommenting
+let g:NERDTrimTrailingWhitespace = 1
+" Enable NERDCommenterToggle to check all selected lines is commented or not 
+let g:NERDToggleCheckAllLines = 1
+
+" CPP Highlighting:
+let g:cpp_class_scope_highlight = 1
+let g:cpp_member_variable_highlight = 1
+let g:cpp_class_decl_highlight = 1
+let g:cpp_posix_standard = 1
+" let g:cpp_experimental_simple_template_highlight = 1
+" let g:cpp_experimental_template_highlight = 1
+" let g:cpp_concepts_highlight = 1
+" let g:cpp_no_function_highlight = 0
+"
+
+" Fulltext Search:
+function FulltextSearch()
+	let l:expr = input("Search for: ")
+	execute "Grep " . l:expr
+endfunction
+
+let g:EasyGrepSearchCurrentBufferDir = 0
+let g:EasyGrepRoot = "repository"
+let g:EasyGrepFilesToExclude=".svn,.git,build/"
+let g:EasyGrepRecursive = 1
+let g:EasyGrepJumpToMatch = 0
+
+nmap <C-S-F> :call FulltextSearch()<CR>
+imap <C-S-F> <C-o>:call FulltextSearch()<CR>
+
+
