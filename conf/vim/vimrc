@@ -1,6 +1,5 @@
 call plug#begin('~/.vim/plugged')
 
-"Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'preservim/nerdtree'
 Plug 'preservim/nerdcommenter'
 Plug 'octol/vim-cpp-enhanced-highlight'
@@ -142,19 +141,6 @@ imap <silent> <C-Up> <C-o>:wincmd k<CR>
 imap <silent> <C-Down> <C-o>:wincmd j<CR>
 imap <silent> <C-Left> <C-o>:wincmd h<CR>
 imap <silent> <C-Right> <C-o>:wincmd l<CR>
-
-" COC.NVIM configuration:
-"nmap <f2> <Plug>(coc-definition)
-"nmap <f3> <Plug>(coc-type-definition)
-"nmap <C-u> <Plug>(coc-references)
-"nmap <C-r> <Plug>(coc-rename)
-
-"inoremap <silent><expr> <C-space> coc#refresh()
-"imap <f2> <C-o><Plug>(coc-definition)
-"imap <f3> <C-o><Plug>(coc-type-definition)
-"imap <C-u> <C-o><Plug>(coc-references)
-"imap <C-r> <C-o><Plug>(coc-rename)
-"autocmd CursorHold * silent call CocActionAsync('highlight')
 
 " nerd tree:
 let NERDTreeMapChangeRoot='c'

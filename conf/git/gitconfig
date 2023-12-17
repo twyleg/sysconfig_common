@@ -1,0 +1,24 @@
+[user]
+	name = Torsten Wylegala
+	email = mail@twyleg.de
+[credential]
+	helper = /usr/lib/git-core/git-credential-gnome-keyring
+[filter "lfs"]
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+[merge]
+	tool = meld
+
+[alias]
+	graph = log --all --decorate --oneline --graph
+[diff]
+	tool = vimdiff
+[core]
+	editor = vim
+	excludesFile = /home/twyleg/.gitignore
+[difftool]
+	prompt = false
+[pull]
+	rebase = false
