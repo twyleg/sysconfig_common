@@ -14,6 +14,14 @@ The setup script handles the following linux distributions:
 * Arch Linux
 * Debian/Ubuntu
 
+## Usage
+
+Run the following commands:
+
+    git clone git@github.com:twyleg/sysconfig_common.git
+    cd sysconfig_common/
+    ./setup.sh
+
 ## Testing
 
 The test/ directory includes scripts for different distributions to start up a podman container and the run the setup.sh bash script.
