@@ -2,6 +2,8 @@
 # VERSION: 3.0
 SETUVAR GOOGLE_MAPS_API_KEY:AIzaSyBN8\x2d0MJA\x2dSxq94q6dTsj2bcdswQXz54Jw
 SETUVAR TRACK_DATA:/home/twyleg/dev/workspace/code\x2dworkspace/open\x2ddashboard/OpenDashboardTrackData
+SETUVAR --export WEBDAV_PASS:connvLJMkNNOEko3GnD2
+SETUVAR --export WEBDAV_USER:testdrivetool_writer
 SETUVAR __fish_init_2_39_8:\x1d
 SETUVAR __fish_init_2_3_0:\x1d
 SETUVAR __fish_init_3_x:\x1d
