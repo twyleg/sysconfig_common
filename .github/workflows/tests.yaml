@@ -1,6 +1,9 @@
 name: tests
 run-name: tests
 on:
+  schedule:
+    - cron: '10 13 * * *'
+
   workflow_call:
 
   push:
