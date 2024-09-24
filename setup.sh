@@ -68,8 +68,9 @@ sym_link () {
     echo "Creating sym link: $1 -> $2"
     if [ -e "$2" ]; then
         echo "'$2' Already existing. Skipping!!!" 
-    fi
-    ln -s $1 $2
+	else
+		ln -s $1 $2	
+	fi
 }
 
 setup_common () {
@@ -79,24 +80,24 @@ setup_common () {
     mkdir -p  $HOME/.config/nvim
     
     # fish
-    ln -s $CONF_DIR/fish $HOME/.config/fish
+    sym_link $CONF_DIR/fish $HOME/.config/fish
     
     # git
-    ln -s $CONF_DIR/git/gitconfig $HOME/.gitconfig
+    sym_link $CONF_DIR/git/gitconfig $HOME/.gitconfig
     
     # tmux
-    ln -s $CONF_DIR/tmux/tmux.conf $HOME/.tmux.conf
-    ln -s $CONF_DIR/tmux/tmux.conf.local $HOME/.tmux.conf.local
+    sym_link $CONF_DIR/tmux/tmux.conf $HOME/.tmux.conf
+    sym_link $CONF_DIR/tmux/tmux.conf.local $HOME/.tmux.conf.local
     
     # vi/vim/nvim
-    ln -s $CONF_DIR/vim/vimrc $HOME/.config/nvim/init.vim
-    ln -s $CONF_DIR/vim/vimrc $HOME/.vimrc
+    sym_link $CONF_DIR/vim/vimrc $HOME/.config/nvim/init.vim
+    sym_link $CONF_DIR/vim/vimrc $HOME/.vimrc
     curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
         https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
         
     local _file
     for _file in vim edit ex vedit vi view; do
-        ln -s nvim "/usr/bin/$_file"
+		sym_link nvim "/usr/bin/$_file"
     done
     vi -c "PlugInstall | qa!"
     
