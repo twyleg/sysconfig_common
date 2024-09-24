@@ -1,0 +1,9 @@
+name: nightly
+run-name: nightly
+on:
+  schedule:
+    - cron: '00 00 * * *'
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yaml
