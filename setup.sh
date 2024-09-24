@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 CONF_DIR=$SCRIPT_DIR/conf
@@ -40,7 +41,8 @@ setup_arch_linux () {
         fish \
         neovim \
         tmux \
-        tldr
+        tldr \
+		fdfdsf
         
 }
 

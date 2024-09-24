@@ -11,7 +11,7 @@ podman run \
     -v $SCRIPT_DIR/..:/root/working_dir/ \
     -w /root/working_dir \
     --name $CONTAINER_NAME \
-    archlinux:latest \
+    docker.io/library/archlinux:latest \
     /usr/bin/bash -c "./setup.sh;/usr/bin/fish"
 
 

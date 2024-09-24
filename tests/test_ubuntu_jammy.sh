@@ -12,5 +12,5 @@ podman run \
     -v $SCRIPT_DIR/..:/root/working_dir/ \
     -w /root/working_dir \
     --name $CONTAINER_NAME \
-    ubuntu:jammy \
+    docker.io/library/ubuntu:jammy \
     /usr/bin/bash -c "./setup.sh;/usr/bin/fish"

@@ -7,7 +7,7 @@ SETUVAR --export WEBDAV_USER:testdrivetool_writer
 SETUVAR __fish_init_2_39_8:\x1d
 SETUVAR __fish_init_2_3_0:\x1d
 SETUVAR __fish_init_3_x:\x1d
-SETUVAR __fish_initialized:3100
+SETUVAR __fish_initialized:3400
 SETUVAR _fisher_edc_2F_bass_files:/home/twyleg/\x2econfig/fish/functions/__bass\x2epy\x1e/home/twyleg/\x2econfig/fish/functions/bass\x2efish
 SETUVAR _fisher_plugins:edc/bass
 SETUVAR fish_color_autosuggestion:555\x1ebrblack
