@@ -7,7 +7,7 @@ SETUVAR --export WEBDAV_USER:testdrivetool_writer
 SETUVAR __fish_init_2_39_8:\x1d
 SETUVAR __fish_init_2_3_0:\x1d
 SETUVAR __fish_init_3_x:\x1d
-SETUVAR __fish_initialized:3400
+SETUVAR __fish_initialized:3100
 SETUVAR _fisher_edc_2F_bass_files:/home/twyleg/\x2econfig/fish/functions/__bass\x2epy\x1e/home/twyleg/\x2econfig/fish/functions/bass\x2efish
 SETUVAR _fisher_plugins:edc/bass
 SETUVAR fish_color_autosuggestion:555\x1ebrblack
@@ -41,4 +41,4 @@ SETUVAR fish_pager_color_prefix:white\x1e\x2d\x2dbold\x1e\x2d\x2dunderline
 SETUVAR fish_pager_color_progress:brwhite\x1e\x2d\x2dbackground\x3dcyan
 SETUVAR fish_pager_color_selected_background:\x2dr
 SETUVAR fish_prompt_pwd_dir_length:0
-SETUVAR fish_user_paths:/home/twyleg/dev/maintenance/scripts\x1e/home/twyleg/\x2ebin/\x3a/home/twyleg/dev/software/flutter/flutter/bin:/home/twyleg/.local/bin
+SETUVAR fish_user_paths:/home/twyleg/dev/maintenance/scripts\x1e/home/twyleg/\x2ebin/\x3a/home/twyleg/dev/software/flutter/flutter/bin\x3a/home/twyleg/\x2elocal/bin
