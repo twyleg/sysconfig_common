@@ -41,7 +41,8 @@ setup_arch_linux () {
         fish \
         neovim \
         tmux \
-        tldr
+        tldr \
+	foobartestsdf
         
 }
 
