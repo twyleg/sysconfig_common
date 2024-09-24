@@ -41,8 +41,7 @@ setup_arch_linux () {
         fish \
         neovim \
         tmux \
-        tldr \
-		fdfdsf
+        tldr
         
 }
 
