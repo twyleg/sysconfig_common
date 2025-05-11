@@ -71,6 +71,15 @@ sym_link () {
 	fi
 }
 
+sym_link_as_root () {
+    echo "Creating sym link: $1 -> $2"
+    if [ -e "$2" ]; then
+        echo "'$2' Already existing. Skipping!!!" 
+	else
+		sudo ln -s $1 $2	
+	fi
+}
+
 setup_common () {
     echo "Setting up common stuff"
     
@@ -95,7 +104,7 @@ setup_common () {
         
     local _file
     for _file in vim edit ex vedit vi view; do
-		sym_link nvim "/usr/bin/$_file"
+		sym_link_as_root nvim "/usr/bin/$_file"
     done
     vi -c "PlugInstall | qa!"
     
