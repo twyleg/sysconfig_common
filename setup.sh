@@ -76,7 +76,7 @@ sym_link_as_root () {
     if [ -e "$2" ]; then
         echo "'$2' Already existing. Skipping!!!" 
 	else
-		sudo ln -s $1 $2	
+		as_root ln -s $1 $2	
 	fi
 }
 
