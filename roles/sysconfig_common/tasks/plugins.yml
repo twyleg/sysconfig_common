@@ -1,0 +1,37 @@
+- name: Create the Vim plugin directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ sysconfig_data_home }}/nvim/site/autoload"
+    - "{{ sysconfig_home }}/.vim/plugged"
+
+- name: Install vim-plug
+  ansible.builtin.get_url:
+    url: "{{ sysconfig_vim_plug_url }}"
+    dest: "{{ sysconfig_data_home }}/nvim/site/autoload/plug.vim"
+    force: false
+    mode: '0644'
+
+- name: Read plugin declarations from the shared Vim configuration
+  ansible.builtin.set_fact:
+    sysconfig_vim_plugins: >-
+      {{ lookup('ansible.builtin.file', role_path + '/../../conf/vim/vimrc')
+         | regex_findall("(?m)^Plug '([^']+)'") }}
+
+- name: Install missing Vim plugin repositories
+  ansible.builtin.git:
+    repo: "{{ sysconfig_plugin_base_url }}/{{ item }}.git"
+    dest: "{{ sysconfig_home }}/.vim/plugged/{{ item | basename }}"
+    update: false
+  loop: "{{ sysconfig_vim_plugins }}"
+
+# The fzf build hook has no native module; its output makes this command idempotent.
+- name: Install the fzf binary used by Vim
+  ansible.builtin.command:
+    argv:
+      - "{{ sysconfig_home }}/.vim/plugged/fzf/install"
+      - --bin
+    creates: "{{ sysconfig_home }}/.vim/plugged/fzf/bin/fzf"
+  when: "'junegunn/fzf' in sysconfig_vim_plugins"

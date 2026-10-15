@@ -1,0 +1,40 @@
+- name: Create the configuration source and Neovim directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ sysconfig_source_dir }}/conf"
+    - "{{ sysconfig_home }}/.config/nvim"
+
+- name: Deploy the versioned configuration files
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../../conf/"
+    dest: "{{ sysconfig_source_dir }}/conf/"
+    mode: preserve
+    directory_mode: '0755'
+
+- name: Inspect existing user configuration paths
+  ansible.builtin.stat:
+    path: "{{ sysconfig_home }}/{{ item.dest }}"
+    follow: false
+  loop:
+    - {src: fish, dest: .config/fish}
+    - {src: git/gitconfig, dest: .gitconfig}
+    - {src: tmux/tmux.conf, dest: .tmux.conf}
+    - {src: tmux/tmux.conf.local, dest: .tmux.conf.local}
+    - {src: vim/vimrc, dest: .config/nvim/init.vim}
+    - {src: vim/vimrc, dest: .vimrc}
+  register: sysconfig_config_paths
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Link missing user configurations
+  ansible.builtin.file:
+    src: "{{ sysconfig_source_dir }}/conf/{{ item.item.src }}"
+    dest: "{{ sysconfig_home }}/{{ item.item.dest }}"
+    state: link
+  loop: "{{ sysconfig_config_paths.results }}"
+  loop_control:
+    label: "{{ item.item.dest }}"
+  when: not item.stat.exists

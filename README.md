@@ -1,28 +1,60 @@
-# sysconfig_common
+# sysconfig_common: native Ansible implementation
 
-Common configs and a setup script to simplify setup of new systems.
+The setup logic lives in `roles/sysconfig_common`. Configuration files remain
+under `conf/`; Vim plugin declarations are read from `conf/vim/vimrc`.
 
-Current configs include:
+## Standalone setup
 
-* fish
-* git
-* tmux
-* vi (nvim)
+```bash
+./setup.sh --ask-become-pass
+./setup.sh --check --diff
+```
 
-The setup script handles the following linux distributions:
+`setup.sh` only bootstraps/locates Ansible, installs the collection requirement,
+and runs `ansible/setup.yml` against localhost. It contains no duplicate package,
+link, plugin, or shell setup. If Ansible is absent, bootstrap installs Python/venv
+prerequisites through apt/pacman and creates a private environment in
+`${XDG_CACHE_HOME:-~/.cache}/sysconfig_common/ansible-venv`. Python >=3.10 and
+Ansible >=2.16 are required. Bootstrap dependency installation still takes place
+when `--check` is passed; check mode applies to the role afterward.
 
-* Arch Linux
-* Debian/Ubuntu
+If you already have compatible Ansible, install `ansible/requirements.yml` and
+include `roles/sysconfig_common` directly from another playbook. The wrapper is
+not involved in that path. It honors an explicit `ANSIBLE_CONFIG`; otherwise it
+uses the standalone configuration beside its playbook.
 
-## Usage
+## Role settings
 
-Run the following commands:
+| Variable | Default / purpose |
+| --- | --- |
+| `sysconfig_user` | Connection user, or gathered local user |
+| `sysconfig_home` | Target user's home from passwd |
+| `sysconfig_source_dir` | `<home>/dev/sysconfig_common`; managed config snapshot |
+| `sysconfig_data_home` | Target environment's XDG data home, or `<home>/.local/share` |
+| `sysconfig_manage_system` | `true`; packages, editor alternatives/aliases, login shell |
+| `sysconfig_install_plugins` | `true`; vim-plug, plugin repositories, fzf binary |
 
-    git clone git@github.com:twyleg/sysconfig_common.git
-    cd sysconfig_common/
-    ./setup.sh
+Existing user configuration paths are preserved; missing links point to the
+managed configuration snapshot. Keep that directory after setup. Plugins are
+cloned only when missing (`update: false`). The fzf installer uses a `creates`
+condition; all other setup operations use Ansible modules. The role changes the
+user's login shell to Fish and selects Neovim as the editor on normal full runs.
 
-## Testing
+For a configuration-only preview:
 
-The test/ directory includes scripts for different distributions to start up a podman container and the run the setup.sh bash script.
-Testing is a little bite overstated here because there are no real test cases with automated testing. It's more of a "Setup a test environment and check manually" approach.
+```bash
+./setup.sh -e sysconfig_manage_system=false --check --diff
+```
+
+## Tests
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Install PyYAML and Ansible to run the integration test. It uses temporary homes,
+real Git and Ansible, local HTTP/plugin fixtures, and disables system changes.
+It checks initial convergence, a zero-change second run, preservation of existing
+files, and check-mode drift reporting. Set `SYSCONFIG_TEST_ANSIBLE` to a specific
+ansible-playbook executable if needed. Collection requirements must be installed.
+Existing container smoke scripts exercise full setup on Jammy, Debian, and Arch.

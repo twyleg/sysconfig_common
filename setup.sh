@@ -1,130 +1,39 @@
 #!/usr/bin/env bash
-set -e
-
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-CONF_DIR=$SCRIPT_DIR/conf
-
-# echo $USER
-# echo $HOME
-# whoami
-# 
-# if [ ! "$(whoami)" == "$USER" ]; then
-#     echo "Please run without sudo!!!"
-#     echo "When setting up for root, startup a root shell with 'su' or 'sudo -s' and run again!"
-#     exit 1
-# fi
-# 
-# exit 0
-
-
-source /etc/os-release
-
-echo "Setting up for user: $USER"
-echo "Home dir: $HOME"
-
-
-as_root () {    
-    if [ ! "$(whoami)" == "root" ]; then
-        sh -c "sudo $*"
-    else
-        sh -c "$*"
+# Bootstrap and invoke Ansible; all system configuration lives in the role.
+set -Eeuo pipefail
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+if [[ ${1:-} == --help || ${1:-} == -h ]]; then
+    echo 'Usage: setup.sh [ANSIBLE_PLAYBOOK_ARGS ...]'
+    echo 'Bootstraps Ansible if absent, then runs the local sysconfig role.'
+    echo 'Use --check --diff to preview, or --ask-become-pass if sudo requires a password.'
+    exit 0
+fi
+as_root() {
+    if [[ $(id -u) == 0 ]]; then "$@"; else sudo -- "$@"; fi
+}
+if command -v ansible-playbook >/dev/null 2>&1; then
+    ansible_playbook="$(command -v ansible-playbook)"
+    ansible_galaxy="$(command -v ansible-galaxy)"
+else
+    bootstrap_dir="${XDG_CACHE_HOME:-$HOME/.cache}/sysconfig_common/ansible-venv"
+    if [[ ! -x $bootstrap_dir/bin/ansible-playbook ]]; then
+        source /etc/os-release
+        case "$ID" in
+            ubuntu|debian|tuxedo)
+                as_root apt-get update
+                as_root apt-get install -y python3 python3-venv ca-certificates ;;
+            arch)
+                as_root pacman -Sy --needed --noconfirm python ca-certificates ;;
+            *) echo "Unsupported bootstrap distribution: $ID" >&2; exit 1 ;;
+        esac
+        python3 -m venv "$bootstrap_dir"
+        "$bootstrap_dir/bin/python" -m pip install -r "$SCRIPT_DIR/ansible/requirements.txt"
     fi
-}
-
-
-setup_arch_linux () {
-    echo "Setting up Arch Linux specifics"
-    
-    as_root pacman -Sy --noconfirm \
-        git \
-        curl \
-        fish \
-        neovim \
-        tmux \
-        tldr
-}
-
-
-setup_debian_gnu_linux () {
-    echo "Setting up Debian GNU/Linux specifics"
-        
-    as_root apt-get -y update 
-    as_root apt-get -y install \
-        git \
-        curl \
-        fish \
-        neovim \
-        tmux \
-        tealdeer
-        
-    as_root update-alternatives --set vim /usr/bin/nvim
-    as_root update-alternatives --set vi /usr/bin/nvim
-
-}
-
-sym_link () {
-    echo "Creating sym link: $1 -> $2"
-    if [ -e "$2" ]; then
-        echo "'$2' Already existing. Skipping!!!" 
-	else
-		ln -s $1 $2	
-	fi
-}
-
-sym_link_as_root () {
-    echo "Creating sym link: $1 -> $2"
-    if [ -e "$2" ]; then
-        echo "'$2' Already existing. Skipping!!!" 
-	else
-		as_root ln -s $1 $2	
-	fi
-}
-
-setup_common () {
-    echo "Setting up common stuff"
-    
-    mkdir -p $HOME/.config
-    mkdir -p  $HOME/.config/nvim
-    
-    # fish
-    sym_link $CONF_DIR/fish $HOME/.config/fish
-    
-    # git
-    sym_link $CONF_DIR/git/gitconfig $HOME/.gitconfig
-    
-    # tmux
-    sym_link $CONF_DIR/tmux/tmux.conf $HOME/.tmux.conf
-    sym_link $CONF_DIR/tmux/tmux.conf.local $HOME/.tmux.conf.local
-    
-    # vi/vim/nvim
-    sym_link $CONF_DIR/vim/vimrc $HOME/.config/nvim/init.vim
-    sym_link $CONF_DIR/vim/vimrc $HOME/.vimrc
-    curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        
-    local _file
-    for _file in vim edit ex vedit vi view; do
-		sym_link_as_root nvim "/usr/bin/$_file"
-    done
-    vi -c "PlugInstall | qa!"
-    
-    as_root usermod -s /usr/bin/fish $(whoami)
-
-}
-
-
-case $NAME in
-
-    "Arch Linux")
-        setup_arch_linux
-        ;;
-    "Debian GNU/Linux" | "TUXEDO OS" | "Ubuntu")
-        setup_debian_gnu_linux
-        ;;
-    *)
-        echo "OS: \"$NAME\" not supported! Good Luck!!!"
-        ;;
-esac
-
-
-setup_common
+    ansible_playbook="$bootstrap_dir/bin/ansible-playbook"
+    ansible_galaxy="$bootstrap_dir/bin/ansible-galaxy"
+fi
+# Install alongside the playbook so other projects' collection versions are unaffected.
+"$ansible_galaxy" collection install -r "$SCRIPT_DIR/ansible/requirements.yml" -p "$SCRIPT_DIR/ansible/collections"
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$SCRIPT_DIR/ansible/ansible.cfg}"
+exec "$ansible_playbook" -i localhost, "$SCRIPT_DIR/ansible/setup.yml" \
+    -e "sysconfig_user=$(id -un)" "$@"
