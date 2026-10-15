@@ -55,7 +55,7 @@ setup_debian_gnu_linux () {
         fish \
         neovim \
         tmux \
-        tldr
+        tealdeer
         
     as_root update-alternatives --set vim /usr/bin/nvim
     as_root update-alternatives --set vi /usr/bin/nvim
