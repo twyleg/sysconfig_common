@@ -20,6 +20,16 @@
       {{ lookup('ansible.builtin.file', role_path + '/../../conf/vim/vimrc')
          | regex_findall("(?m)^Plug '([^']+)'") }}
 
+# The Git module probes the remote before cloning. If the destination does not
+# exist, that probe can run from the playbook directory instead. A submodule
+# mounted into a container may have an unusable .git pointer there.
+- name: Create Vim plugin checkout directories
+  ansible.builtin.file:
+    path: "{{ sysconfig_home }}/.vim/plugged/{{ item | basename }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ sysconfig_vim_plugins }}"
+
 - name: Install missing Vim plugin repositories
   ansible.builtin.git:
     repo: "{{ sysconfig_plugin_base_url }}/{{ item }}.git"

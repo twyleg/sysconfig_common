@@ -7,9 +7,12 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIRECTORY = REPOSITORY_ROOT / "tests/fixtures"
@@ -163,6 +166,105 @@ class NativeSetupTests(unittest.TestCase):
         preview = self.run_playbook("--check", "--diff")
         self.assertFalse(tmux_link.exists())
         self.assertRegex(preview.stdout, r"changed=[1-9]")
+
+
+@unittest.skipUnless(ANSIBLE_COMMAND, "Install Ansible or set SYSCONFIG_TEST_ANSIBLE")
+class ContainerCheckoutTests(unittest.TestCase):
+    def test_clones_plugins_when_checkout_git_metadata_is_not_mounted(self):
+        with tempfile.TemporaryDirectory(prefix="mounted sysconfig checkout ") as temporary:
+            temporary_directory = Path(temporary)
+            mounted_checkout = temporary_directory / "working_dir"
+            ansible_directory = mounted_checkout / "ansible"
+            ansible_directory.mkdir(parents=True)
+
+            # Submodules and Git worktrees use a .git file pointing elsewhere.
+            # A container that mounts only the checkout cannot access that path.
+            git_pointer = mounted_checkout / ".git"
+            git_pointer.write_text("gitdir: /not-mounted/parent/repository.git\n")
+            shutil.copyfile(REPOSITORY_ROOT / "setup.sh", mounted_checkout / "setup.sh")
+            (mounted_checkout / "setup.sh").chmod(0o755)
+
+            plugin_sources = temporary_directory / "plugin sources"
+            source_repository = plugin_sources / "fixture/example.git"
+            source_repository.mkdir(parents=True)
+            (source_repository / "README").write_text("local plugin fixture\n")
+            git_commands = [
+                ["git", "init"],
+                ["git", "add", "."],
+                [
+                    "git", "-c", "user.name=Fixture", "-c", "user.email=fixture@local",
+                    "commit", "-m", "fixture",
+                ],
+            ]
+            for command in git_commands:
+                subprocess.run(
+                    command, cwd=source_repository, check=True, capture_output=True
+                )
+
+            target_home = temporary_directory / "target home"
+            plugin_destination = target_home / ".vim/plugged/example"
+            plugin_tasks_path = (
+                REPOSITORY_ROOT / "roles/sysconfig_common/tasks/plugins.yml"
+            )
+            plugin_tasks = yaml.safe_load(plugin_tasks_path.read_text())
+            clone_task_names = {
+                "Create Vim plugin checkout directories",
+                "Install missing Vim plugin repositories",
+            }
+            clone_tasks = [
+                task for task in plugin_tasks if task["name"] in clone_task_names
+            ]
+            self.assertEqual(len(clone_tasks), 2)
+
+            playbook = [{
+                "name": "Clone a plugin from a container-mounted checkout",
+                "hosts": "localhost",
+                "connection": "local",
+                "gather_facts": False,
+                "vars": {
+                    "ansible_python_interpreter": sys.executable,
+                    "sysconfig_home": str(target_home),
+                    "sysconfig_plugin_base_url": plugin_sources.as_uri(),
+                    "sysconfig_vim_plugins": ["fixture/example"],
+                },
+                "tasks": clone_tasks,
+            }]
+            # Use JSON, which Ansible accepts as YAML, to write the test playbook.
+            (ansible_directory / "setup.yml").write_text(json.dumps(playbook, indent=2))
+            (ansible_directory / "ansible.cfg").write_text(
+                "[defaults]\nstdout_callback = default\n"
+            )
+            (ansible_directory / "requirements.yml").write_text("collections: []\n")
+
+            command_directory = temporary_directory / "commands"
+            command_directory.mkdir()
+            (command_directory / "ansible-playbook").symlink_to(
+                Path(ANSIBLE_COMMAND).resolve()
+            )
+            galaxy_command = command_directory / "ansible-galaxy"
+            shutil.copyfile(FIXTURE_DIRECTORY / "fake_ansible.py", galaxy_command)
+            galaxy_command.chmod(0o755)
+
+            environment = {
+                **os.environ,
+                "PATH": str(command_directory) + ":" + os.environ["PATH"],
+                "ANSIBLE_CONFIG": str(ansible_directory / "ansible.cfg"),
+                "SYSCONFIG_TEST_CALLS": str(temporary_directory / "calls.jsonl"),
+            }
+            result = subprocess.run(
+                [str(mounted_checkout / "setup.sh")],
+                cwd=mounted_checkout,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue((plugin_destination / ".git").is_dir())
+            self.assertEqual(
+                git_pointer.read_text(), "gitdir: /not-mounted/parent/repository.git\n"
+            )
 
 
 class WrapperTests(unittest.TestCase):

@@ -48,6 +48,11 @@ For a configuration-only preview:
 
 ## Tests
 
+The role creates plugin checkout directories before invoking the Git module.
+This also supports container-mounted submodules/worktrees whose `.git` file
+points to parent-repository metadata outside the mount: Git's initial remote
+checks run from the plugin directory instead of the mounted source checkout.
+
 ```bash
 python3 -m unittest discover -s tests -v
 ```
@@ -55,6 +60,7 @@ python3 -m unittest discover -s tests -v
 Install PyYAML and Ansible to run the integration test. It uses temporary homes,
 real Git and Ansible, local HTTP/plugin fixtures, and disables system changes.
 It checks initial convergence, a zero-change second run, preservation of existing
-files, and check-mode drift reporting. Set `SYSCONFIG_TEST_ANSIBLE` to a specific
+files, check-mode drift reporting, and plugin cloning from a checkout with
+unavailable Git metadata. Set `SYSCONFIG_TEST_ANSIBLE` to a specific
 ansible-playbook executable if needed. Collection requirements must be installed.
 Existing container smoke scripts exercise full setup on Jammy, Debian, and Arch.
