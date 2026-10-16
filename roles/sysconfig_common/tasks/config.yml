@@ -19,12 +19,18 @@
     path: "{{ sysconfig_home }}/{{ item.dest }}"
     follow: false
   loop:
-    - {src: fish, dest: .config/fish}
-    - {src: git/gitconfig, dest: .gitconfig}
-    - {src: tmux/tmux.conf, dest: .tmux.conf}
-    - {src: tmux/tmux.conf.local, dest: .tmux.conf.local}
-    - {src: vim/vimrc, dest: .config/nvim/init.vim}
-    - {src: vim/vimrc, dest: .vimrc}
+    - src: fish
+      dest: .config/fish
+    - src: git/gitconfig
+      dest: .gitconfig
+    - src: tmux/tmux.conf
+      dest: .tmux.conf
+    - src: tmux/tmux.conf.local
+      dest: .tmux.conf.local
+    - src: vim/vimrc
+      dest: .config/nvim/init.vim
+    - src: vim/vimrc
+      dest: .vimrc
   register: sysconfig_config_paths
   loop_control:
     label: "{{ item.dest }}"

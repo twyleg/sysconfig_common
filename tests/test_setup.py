@@ -1,4 +1,4 @@
-"""Exercise the native role, including plugin cloning, without root or Internet."""
+"""Exercise the native role using temporary homes and local plugin fixtures."""
 import functools
 import http.server
 import json
@@ -11,96 +11,195 @@ import tempfile
 import threading
 import unittest
 
-import yaml
-ROOT=Path(__file__).resolve().parents[1]
-ANSIBLE=os.environ.get('SYSCONFIG_TEST_ANSIBLE',shutil.which('ansible-playbook') or '')
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+FIXTURE_DIRECTORY = REPOSITORY_ROOT / "tests/fixtures"
+ANSIBLE_COMMAND = os.environ.get(
+    "SYSCONFIG_TEST_ANSIBLE",
+    shutil.which("ansible-playbook") or "",
+)
 
-class QuietHTTP(http.server.SimpleHTTPRequestHandler):
-    def log_message(self,*args): pass
 
-@unittest.skipUnless(ANSIBLE,'Install Ansible or set SYSCONFIG_TEST_ANSIBLE')
+class QuietHTTPHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *arguments):
+        pass
+
+
+@unittest.skipUnless(ANSIBLE_COMMAND, "Install Ansible or set SYSCONFIG_TEST_ANSIBLE")
 class NativeSetupTests(unittest.TestCase):
+    def setUp(self):
+        temporary_directory = tempfile.TemporaryDirectory(prefix="native sysconfig review ")
+        self.addCleanup(temporary_directory.cleanup)
+        self.temporary_directory = Path(temporary_directory.name)
+
+        self.home_directory = self.temporary_directory / "user home"
+        self.home_directory.mkdir()
+        self.git_configuration = self.home_directory / ".gitconfig"
+        self.git_configuration.write_text("keep my configuration\n")
+
+        vim_configuration = (REPOSITORY_ROOT / "conf/vim/vimrc").read_text()
+        self.plugin_repositories = re.findall(
+            r"^Plug '([^']+)'", vim_configuration, re.MULTILINE
+        )
+        self.create_plugin_repositories()
+        self.start_download_server()
+        self.create_playbook_variables()
+
+    def run_git(self, working_directory, *arguments):
+        return subprocess.run(
+            ["git", *arguments],
+            cwd=working_directory,
+            check=True,
+            capture_output=True,
+        )
+
+    def create_plugin_repositories(self):
+        source_repository = self.temporary_directory / "plugin source"
+        source_repository.mkdir()
+        (source_repository / "README").write_text("local plugin fixture\n")
+        shutil.copyfile(
+            FIXTURE_DIRECTORY / "fzf-install.sh", source_repository / "install"
+        )
+        (source_repository / "install").chmod(0o755)
+
+        self.run_git(source_repository, "init")
+        self.run_git(source_repository, "add", ".")
+        self.run_git(
+            source_repository,
+            "-c", "user.name=Fixture",
+            "-c", "user.email=fixture@local",
+            "commit", "-m", "fixture",
+        )
+
+        self.remote_directory = self.temporary_directory / "remote repositories"
+        for repository in self.plugin_repositories:
+            destination = self.remote_directory / (repository + ".git")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            self.run_git(
+                source_repository,
+                "clone", "--bare", str(source_repository), str(destination),
+            )
+
+    def start_download_server(self):
+        web_directory = self.temporary_directory / "web"
+        web_directory.mkdir()
+        (web_directory / "plug.vim").write_text("fixture vim-plug\n")
+
+        request_handler = functools.partial(
+            QuietHTTPHandler, directory=str(web_directory)
+        )
+        self.download_server = http.server.ThreadingHTTPServer(
+            ("127.0.0.1", 0), request_handler
+        )
+        self.server_thread = threading.Thread(
+            target=self.download_server.serve_forever, daemon=True
+        )
+        self.server_thread.start()
+        self.addCleanup(self.stop_download_server)
+
+    def stop_download_server(self):
+        self.download_server.shutdown()
+        self.download_server.server_close()
+        self.server_thread.join()
+
+    def create_playbook_variables(self):
+        variables = {
+            "sysconfig_manage_system": False,
+            "sysconfig_home": str(self.home_directory),
+            "sysconfig_data_home": str(self.home_directory / "data"),
+            # Encode spaces in the local Git URL while retaining spaces in the
+            # target home path to exercise path handling in the role itself.
+            "sysconfig_plugin_base_url": self.remote_directory.as_uri(),
+            "sysconfig_vim_plug_url": (
+                f"http://127.0.0.1:{self.download_server.server_port}/plug.vim"
+            ),
+        }
+        self.variables_file = self.temporary_directory / "vars.json"
+        self.variables_file.write_text(json.dumps(variables, indent=2))
+
+    def run_playbook(self, *additional_arguments):
+        command = [
+            ANSIBLE_COMMAND,
+            "-i", "localhost,",
+            str(REPOSITORY_ROOT / "ansible/setup.yml"),
+            "-e", "@" + str(self.variables_file),
+            *additional_arguments,
+        ]
+        environment = {
+            **os.environ,
+            "ANSIBLE_CONFIG": str(REPOSITORY_ROOT / "ansible/ansible.cfg"),
+        }
+        result = subprocess.run(
+            command,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
+
     def test_converges_preserves_files_and_supports_check_mode(self):
-        with tempfile.TemporaryDirectory(prefix='native sysconfig review ') as temp:
-            base=Path(temp)
-            home=base/'user home'
-            home.mkdir()
-            (home/'.gitconfig').write_text('keep my configuration\n')
-            repo_source=base/'plugin source'
-            repo_source.mkdir()
-            (repo_source/'README').write_text('local plugin fixture\n')
-            (repo_source/'install').write_text('#!/bin/sh\nmkdir -p "$(dirname "$0")/bin"\nprintf fixture > "$(dirname "$0")/bin/fzf"\nchmod +x "$(dirname "$0")/bin/fzf"\n')
-            (repo_source/'install').chmod(0o755)
-            def git(*args):
-                subprocess.run(['git',*args],cwd=repo_source,check=True,capture_output=True)
-            git('init')
-            git('add','.')
-            git('-c','user.name=Fixture','-c','user.email=fixture@local','commit','-m','fixture')
-            remotes=base/'remote repositories'
-            plugins=re.findall(r"^Plug '([^']+)'",(ROOT/'conf/vim/vimrc').read_text(),re.M)
-            for plugin in plugins:
-                dest=remotes/(plugin+'.git')
-                dest.parent.mkdir(parents=True,exist_ok=True)
-                subprocess.run(['git','clone','--bare',str(repo_source),str(dest)],check=True,capture_output=True)
-            web=base/'web'
-            web.mkdir()
-            (web/'plug.vim').write_text('fixture vim-plug\n')
-            server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(QuietHTTP,directory=str(web)))
-            thread=threading.Thread(target=server.serve_forever,daemon=True)
-            thread.start()
-            try:
-                vars_file=base/'vars.json'
-                vars_file.write_text(json.dumps({'sysconfig_manage_system':False,'sysconfig_home':str(home),
-                    'sysconfig_data_home':str(home/'data'),'sysconfig_plugin_base_url':remotes.as_uri(),
-                    'sysconfig_vim_plug_url':f'http://127.0.0.1:{server.server_port}/plug.vim'}))
-                env={**os.environ,'ANSIBLE_CONFIG':str(ROOT/'ansible/ansible.cfg')}
-                command=[ANSIBLE,'-i','localhost,',str(ROOT/'ansible/setup.yml'),'-e','@'+str(vars_file)]
-                first=subprocess.run(command,env=env,capture_output=True,text=True,timeout=180)
-                self.assertEqual(first.returncode,0,first.stdout+first.stderr)
-                self.assertEqual((home/'.gitconfig').read_text(),'keep my configuration\n')
-                link=home/'.tmux.conf'
-                self.assertEqual(link.resolve(),home/'dev/sysconfig_common/conf/tmux/tmux.conf')
-                for plugin in plugins:
-                    self.assertTrue((home/'.vim/plugged'/plugin.split('/')[-1]/'.git').is_dir())
-                self.assertTrue(os.access(home/'.vim/plugged/fzf/bin/fzf',os.X_OK))
-                second=subprocess.run(command,env=env,capture_output=True,text=True,timeout=180)
-                self.assertEqual(second.returncode,0,second.stdout+second.stderr)
-                self.assertRegex(second.stdout,r'changed=0\s')
-                link.unlink()
-                preview=subprocess.run(command+['--check','--diff'],env=env,capture_output=True,text=True,timeout=180)
-                self.assertEqual(preview.returncode,0,preview.stdout+preview.stderr)
-                self.assertFalse(link.exists())
-                self.assertRegex(preview.stdout,r'changed=[1-9]')
-            finally:
-                server.shutdown()
-                server.server_close()
-                thread.join()
+        self.run_playbook()
+
+        self.assertEqual(self.git_configuration.read_text(), "keep my configuration\n")
+        tmux_link = self.home_directory / ".tmux.conf"
+        expected_configuration = (
+            self.home_directory / "dev/sysconfig_common/conf/tmux/tmux.conf"
+        )
+        self.assertEqual(tmux_link.resolve(), expected_configuration)
+
+        for repository in self.plugin_repositories:
+            plugin_name = repository.rsplit("/", 1)[-1]
+            git_directory = self.home_directory / ".vim/plugged" / plugin_name / ".git"
+            self.assertTrue(git_directory.is_dir())
+
+        fzf_binary = self.home_directory / ".vim/plugged/fzf/bin/fzf"
+        self.assertTrue(os.access(fzf_binary, os.X_OK))
+
+        second_run = self.run_playbook()
+        self.assertRegex(second_run.stdout, r"changed=0\s")
+
+        tmux_link.unlink()
+        preview = self.run_playbook("--check", "--diff")
+        self.assertFalse(tmux_link.exists())
+        self.assertRegex(preview.stdout, r"changed=[1-9]")
 
 
 class WrapperTests(unittest.TestCase):
     def test_forwards_arguments_and_uses_the_shared_role_playbook(self):
-        with tempfile.TemporaryDirectory(prefix='sysconfig wrapper ') as temp:
-            root=Path(temp)
-            calls=root/'calls.jsonl'
-            mock=r'''#!/usr/bin/env python3
-import json, os, pathlib, sys
-with open(os.environ['SYSCONFIG_TEST_CALLS'],'a') as output:
-    output.write(json.dumps([pathlib.Path(sys.argv[0]).name,*sys.argv[1:]])+'\n')
-'''
-            for name in ('ansible-playbook','ansible-galaxy'):
-                path=root/name
-                path.write_text(mock)
-                path.chmod(0o755)
-            env={**os.environ,'PATH':str(root)+':'+os.environ['PATH'],
-                 'SYSCONFIG_TEST_CALLS':str(calls)}
-            result=subprocess.run([str(ROOT/'setup.sh'),'--check','--diff'],
-                                  cwd=temp,env=env,capture_output=True,text=True,timeout=15)
-            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-            recorded=[json.loads(line) for line in calls.read_text().splitlines()]
-            self.assertEqual(recorded[0][0],'ansible-galaxy')
-            self.assertIn(str(ROOT/'ansible/requirements.yml'),recorded[0])
-            self.assertEqual(recorded[1][0],'ansible-playbook')
-            self.assertIn(str(ROOT/'ansible/setup.yml'),recorded[1])
-            self.assertEqual(recorded[1][-2:],['--check','--diff'])
+        with tempfile.TemporaryDirectory(prefix="sysconfig wrapper ") as temporary:
+            command_directory = Path(temporary)
+            call_log = command_directory / "calls.jsonl"
 
-if __name__=='__main__': unittest.main()
+            for command_name in ("ansible-playbook", "ansible-galaxy"):
+                command_path = command_directory / command_name
+                shutil.copyfile(FIXTURE_DIRECTORY / "fake_ansible.py", command_path)
+                command_path.chmod(0o755)
+
+            environment = {
+                **os.environ,
+                "PATH": str(command_directory) + ":" + os.environ["PATH"],
+                "SYSCONFIG_TEST_CALLS": str(call_log),
+            }
+            result = subprocess.run(
+                [str(REPOSITORY_ROOT / "setup.sh"), "--check", "--diff"],
+                cwd=temporary,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+            calls = [json.loads(line) for line in call_log.read_text().splitlines()]
+            galaxy_call, playbook_call = calls
+
+            self.assertEqual(galaxy_call[0], "ansible-galaxy")
+            self.assertIn(str(REPOSITORY_ROOT / "ansible/requirements.yml"), galaxy_call)
+            self.assertEqual(playbook_call[0], "ansible-playbook")
+            self.assertIn(str(REPOSITORY_ROOT / "ansible/setup.yml"), playbook_call)
+            self.assertEqual(playbook_call[-2:], ["--check", "--diff"])
+
+
+if __name__ == "__main__":
+    unittest.main()

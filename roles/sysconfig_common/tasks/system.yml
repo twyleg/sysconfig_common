@@ -6,7 +6,13 @@
 - name: Install Debian and Ubuntu packages
   become: true
   ansible.builtin.apt:
-    name: [git, curl, fish, neovim, tmux, tealdeer]
+    name:
+      - git
+      - curl
+      - fish
+      - neovim
+      - tmux
+      - tealdeer
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -35,14 +41,22 @@
     path: /usr/bin/nvim
     priority: 60
     state: selected
-  loop: [vi, vim]
+  loop:
+    - vi
+    - vim
   when: ansible_facts.os_family == 'Debian'
 
 - name: Inspect existing editor commands
   ansible.builtin.stat:
     path: "/usr/bin/{{ item }}"
     follow: false
-  loop: [vim, edit, ex, vedit, vi, view]
+  loop:
+    - vim
+    - edit
+    - ex
+    - vedit
+    - vi
+    - view
   register: sysconfig_editor_commands
 
 - name: Link missing editor commands to Neovim

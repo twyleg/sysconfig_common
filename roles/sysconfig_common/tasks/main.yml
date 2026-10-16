@@ -6,7 +6,8 @@
 - name: Configure system packages and editor commands
   ansible.builtin.import_tasks: system.yml
   when: sysconfig_manage_system | bool
-  tags: [system]
+  tags:
+    - system
 
 - name: Configure the user's environment
   become: "{{ sysconfig_user != ansible_facts.user_id }}"
@@ -18,4 +19,5 @@
     - name: Install Vim plugins
       ansible.builtin.import_tasks: plugins.yml
       when: sysconfig_install_plugins | bool
-  tags: [config]
+  tags:
+    - config
