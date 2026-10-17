@@ -4,18 +4,19 @@ run_test_container() {
     local image="$1"
     shift
 
-    local start_fish=false
+    local start_shell=false
     local keep_container=false
     local tests_directory
     local repository_directory
     local container_name
-    local container_command='./setup.sh'
+    # Package configuration must stay unattended even when the container has a terminal.
+    local container_command='DEBIAN_FRONTEND=noninteractive ./setup.sh'
     local -a podman_options=(--replace)
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --interactive)
-                start_fish=true
+                start_shell=true
                 ;;
             --keep)
                 keep_container=true
@@ -32,9 +33,9 @@ run_test_container() {
         podman_options+=(--rm)
     fi
 
-    if [[ "$start_fish" == true ]]; then
+    if [[ "$start_shell" == true ]]; then
         podman_options+=(--interactive --tty)
-        container_command='./setup.sh && exec /usr/bin/fish'
+        container_command+=' && exec /usr/bin/fish'
     fi
 
     tests_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)" || return

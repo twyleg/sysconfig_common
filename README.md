@@ -99,6 +99,10 @@ its image and forwards its command-line options.
 ```
 
 The helper mounts this repository and runs `setup.sh`. Automatic removal also
-applies if setup fails, unless `--keep` is set. Each run replaces the previous
-container for that image, including one retained with `--keep`; different images
+applies if setup fails, unless `--keep` is set. Setup runs with
+`DEBIAN_FRONTEND=noninteractive`, so Debian/Ubuntu package configuration uses
+default answers without prompting, including when `--interactive` is set.
+This environment setting applies only to setup, not to the subsequent Fish shell.
+Each run replaces the previous container for that image, including one retained
+with `--keep`; different images
 use separate container names.
