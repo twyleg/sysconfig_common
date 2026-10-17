@@ -1,39 +1,57 @@
 name: tests
-run-name: tests
+
 on:
   workflow_call:
-
   push:
     branches:
       - "**"
 
 jobs:
   smoke-tests:
+    name: Setup (${{ matrix.image }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        image: [ 'ubuntu:jammy', 'debian:latest', 'archlinux:latest' ]
-    runs-on: ubuntu-latest
+        image:
+          - ubuntu:jammy
+          - ubuntu:noble
+          - ubuntu:resolute
+          - ubuntu:latest
+          - debian:latest
+          - archlinux:latest
+
     container:
       image: ${{ matrix.image }}
       env:
+        DEBIAN_FRONTEND: noninteractive
         TZ: Europe/Berlin
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
-    - name: 'Install git (Ubuntu, Debian)'
-      if: ${{ contains(fromJSON('["ubuntu:jammy", "debian:latest"]'), matrix.image) }}
-      run: apt-get update && apt-get install -y git
-    - name: 'Install git (Arch)'
-      if: ${{ contains('archlinux:latest', matrix.image) }}
-      run: pacman -Syu --noconfirm git
-    - name: 'Checkout repository'
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-    - name: Setup timezone
-      run: ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-    - name: 'Test (Ubuntu, Debian)'
-      if: ${{ contains(fromJSON('["ubuntu:jammy", "debian:latest"]'), matrix.image) }}
-      run:  bash setup.sh
-    - name: 'Test (Arch)'
-      if: ${{ contains('archlinux:latest', matrix.image) }}
-      run: bash setup.sh
+      - name: Prepare container
+        run: |
+          ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime
+          echo "$TZ" > /etc/timezone
+
+          # Git and CA certificates are needed before checking out the repository.
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y git ca-certificates
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Syu --noconfirm --needed git ca-certificates
+          else
+            echo 'Unsupported package manager' >&2
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Run setup
+        run: bash setup.sh
