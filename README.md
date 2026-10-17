@@ -93,9 +93,9 @@ its image and forwards its command-line options.
 
 ```bash
 ./tests/test_ubuntu_22.04_jammy.sh                # Run setup and remove the container on exit.
-./tests/test_ubuntu_22.04_jammy.sh --fish         # Open Fish after successful setup; remove on shell exit.
+./tests/test_ubuntu_22.04_jammy.sh --interactive         # Open Fish after successful setup; remove on shell exit.
 ./tests/test_ubuntu_22.04_jammy.sh --keep         # Retain the stopped container after setup.
-./tests/test_ubuntu_22.04_jammy.sh --fish --keep  # Open Fish and retain the container on shell exit.
+./tests/test_ubuntu_22.04_jammy.sh --interactive --keep  # Open Fish and retain the container on shell exit.
 ```
 
 The helper mounts this repository and runs `setup.sh`. Automatic removal also

@@ -14,14 +14,14 @@ run_test_container() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --fish)
+            --interactive)
                 start_fish=true
                 ;;
             --keep)
                 keep_container=true
                 ;;
             *)
-                printf 'Unknown option: %s\nUsage: %s [--fish] [--keep]\n' "$1" "$0" >&2
+                printf 'Unknown option: %s\nUsage: %s [--interactive] [--keep]\n' "$1" "$0" >&2
                 return 2
                 ;;
         esac
