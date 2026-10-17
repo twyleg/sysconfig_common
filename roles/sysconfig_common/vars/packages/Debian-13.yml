@@ -1,0 +1,7 @@
+packages:
+  - git
+  - curl
+  - fish
+  - neovim
+  - tmux
+  - tealdeer

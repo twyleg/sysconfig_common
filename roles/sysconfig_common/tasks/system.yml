@@ -3,16 +3,13 @@
     that: ansible_facts.os_family in ['Debian', 'Archlinux']
     fail_msg: This role supports Debian/Ubuntu and Arch Linux.
 
+- name: Select the distribution package list
+  ansible.builtin.import_tasks: load_packages.yml
+
 - name: Install Debian and Ubuntu packages
   become: true
   ansible.builtin.apt:
-    name:
-      - git
-      - curl
-      - fish
-      - neovim
-      - tmux
-      - tealdeer
+    name: "{{ sysconfig_distribution.packages }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -26,12 +23,12 @@
 - name: Install Arch Linux packages
   become: true
   community.general.pacman:
-    name: "{{ sysconfig_arch_packages }}"
+    name: "{{ sysconfig_distribution.packages }}"
     state: present
     update_cache: true
   when:
     - ansible_facts.os_family == 'Archlinux'
-    - sysconfig_arch_packages | difference(ansible_facts.packages.keys() | list) | length > 0
+    - sysconfig_distribution.packages | difference(ansible_facts.packages.keys() | list) | length > 0
 
 - name: Select Neovim for Debian editor alternatives
   become: true

@@ -1,0 +1,12 @@
+- name: Load packages for the target distribution
+  ansible.builtin.include_vars:
+    file: "{{ lookup('ansible.builtin.first_found', package_files) }}"
+    name: sysconfig_distribution
+  vars:
+    package_files:
+      files:
+        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_version }}.yml"
+        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
+        - "{{ ansible_facts.distribution }}.yml"
+      paths:
+        - "{{ role_path }}/vars/packages"

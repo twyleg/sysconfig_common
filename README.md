@@ -46,6 +46,29 @@ For a configuration-only preview:
 ./setup.sh -e sysconfig_manage_system=false --check --diff
 ```
 
+## Distribution package lists
+
+Package lists live in `roles/sysconfig_common/vars/packages/`. Each file defines
+one `packages` list. The role loads the first existing file in this order:
+
+1. `<distribution>-<full-version>.yml`, for example `Ubuntu-22.04.yml`.
+2. `<distribution>-<major-version>.yml`, for example `Debian-13.yml`.
+3. `<distribution>.yml`, for example `Ubuntu.yml` or `Archlinux.yml`.
+
+Names match Ansible's gathered distribution facts, including capitalization.
+Only one file is loaded; package lists are not merged. If no matching file
+exists, setup fails instead of guessing which packages to install. Package
+selection is skipped when `sysconfig_manage_system=false`.
+
+Both apt and pacman use the selected `sysconfig_distribution.packages` list.
+General settings remain in `defaults/main.yml`.
+
+The Debian and Arch fallback lists retain `tldr`. The Ubuntu fallback uses
+`tealdeer`, with `tldr` selected for Ubuntu 22.04. Debian 13 selects `tealdeer`
+because [Debian removed tldr in that release](https://www.debian.org/releases/trixie/release-notes/issues.en.html#noteworthy-obsolete-packages).
+See also the Ubuntu package listings for [Jammy tldr](https://packages.ubuntu.com/jammy/tldr)
+and [tealdeer](https://packages.ubuntu.com/tealdeer).
+
 ## Tests
 
 The role creates plugin checkout directories before invoking the Git module.

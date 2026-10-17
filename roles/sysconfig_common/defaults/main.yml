@@ -6,10 +6,3 @@ sysconfig_manage_system: true
 sysconfig_install_plugins: true
 sysconfig_plugin_base_url: https://github.com
 sysconfig_vim_plug_url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-sysconfig_arch_packages:
-  - git
-  - curl
-  - fish
-  - neovim
-  - tmux
-  - tldr
