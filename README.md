@@ -86,9 +86,19 @@ It checks initial convergence, a zero-change second run, preservation of existin
 files, check-mode drift reporting, and plugin cloning from a checkout with
 unavailable Git metadata. Set `SYSCONFIG_TEST_ANSIBLE` to a specific
 ansible-playbook executable if needed. Collection requirements must be installed.
-Container smoke scripts exercise full setup on Ubuntu Jammy, Ubuntu latest,
-Debian latest, and Arch. For example, run `./tests/test_ubuntu_jammy.sh` with
-Podman installed. Each launcher sources `tests/common.sh` and calls
-`run_test_container` with its image. The helper mounts this repository, runs
-`setup.sh`, and opens Fish afterward. Each run replaces the previous container
-for that image; different images use separate container names.
+Container smoke scripts exercise full setup on Ubuntu Jammy, Noble, Resolute,
+Ubuntu latest, Debian latest, and Arch. Podman must be installed.
+Each launcher sources `tests/common.sh`, then calls `run_test_container` with
+its image and forwards its command-line options.
+
+```bash
+./tests/test_ubuntu_22.04_jammy.sh                # Run setup and remove the container on exit.
+./tests/test_ubuntu_22.04_jammy.sh --fish         # Open Fish after successful setup; remove on shell exit.
+./tests/test_ubuntu_22.04_jammy.sh --keep         # Retain the stopped container after setup.
+./tests/test_ubuntu_22.04_jammy.sh --fish --keep  # Open Fish and retain the container on shell exit.
+```
+
+The helper mounts this repository and runs `setup.sh`. Automatic removal also
+applies if setup fails, unless `--keep` is set. Each run replaces the previous
+container for that image, including one retained with `--keep`; different images
+use separate container names.
