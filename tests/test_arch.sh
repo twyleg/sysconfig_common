@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)" || exit
+source "$SCRIPT_DIR/common.sh" || exit
 
-CONTAINER_NAME=arch_test
-
-podman rm -f $CONTAINER_NAME
-
-podman run \
-    -it \
-    -v $SCRIPT_DIR/..:/root/working_dir/ \
-    -w /root/working_dir \
-    --name $CONTAINER_NAME \
-    docker.io/library/archlinux:latest \
-    /usr/bin/bash -c "./setup.sh;/usr/bin/fish"
-
-
+run_test_container "docker.io/library/archlinux:latest"

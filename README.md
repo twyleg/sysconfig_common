@@ -86,4 +86,9 @@ It checks initial convergence, a zero-change second run, preservation of existin
 files, check-mode drift reporting, and plugin cloning from a checkout with
 unavailable Git metadata. Set `SYSCONFIG_TEST_ANSIBLE` to a specific
 ansible-playbook executable if needed. Collection requirements must be installed.
-Existing container smoke scripts exercise full setup on Jammy, Debian, and Arch.
+Container smoke scripts exercise full setup on Ubuntu Jammy, Ubuntu latest,
+Debian latest, and Arch. For example, run `./tests/test_ubuntu_jammy.sh` with
+Podman installed. Each launcher sources `tests/common.sh` and calls
+`run_test_container` with its image. The helper mounts this repository, runs
+`setup.sh`, and opens Fish afterward. Each run replaces the previous container
+for that image; different images use separate container names.
